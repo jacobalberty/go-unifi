@@ -166,6 +166,9 @@ func TestDecodeErrors(t *testing.T) {
 	if _, err := Seal(testMAC, FlagZlib|FlagSnappy, nil, []byte(`{}`)); !errors.Is(err, ErrMalformed) {
 		t.Errorf("both compressions: %v", err)
 	}
+	if _, err := Seal(testMAC, FlagEncrypted, captureKey, make([]byte, maxMessage+1)); !errors.Is(err, ErrMalformed) {
+		t.Errorf("oversized message: %v", err)
+	}
 	if _, err := Seal(net.HardwareAddr{1, 2}, 0, nil, []byte(`{}`)); err != nil {
 		t.Errorf("seal itself should not check the MAC: %v", err)
 	}

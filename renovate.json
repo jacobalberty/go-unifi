@@ -1,0 +1,25 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "description": "Renovate only maintains the go directive in go.mod; Dependabot handles Go modules and GitHub Actions.",
+  "enabledManagers": ["gomod"],
+  "semanticCommits": "enabled",
+  "packageRules": [
+    {
+      "description": "Module dependencies are left to Dependabot.",
+      "matchManagers": ["gomod"],
+      "enabled": false
+    },
+    {
+      "description": "Keep the go directive on the oldest supported Go release (N-1) at x.y.0. Go ships a minor every ~6 months and supports the latest two, so a release becomes N-1 roughly when it is 6 months old; 200 days lets the next release land first.",
+      "matchManagers": ["gomod"],
+      "matchDepTypes": ["golang"],
+      "matchDepNames": ["go"],
+      "enabled": true,
+      "rangeStrategy": "bump",
+      "allowedVersions": "/^\\d+\\.\\d+\\.0$/",
+      "minimumReleaseAge": "200 days",
+      "commitMessageTopic": "minimum Go version"
+    }
+  ]
+}

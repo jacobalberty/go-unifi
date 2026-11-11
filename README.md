@@ -1,3 +1,58 @@
 # go-unifi
 
-A Go implementation of the UniFi device protocol.
+[![Go Reference](https://pkg.go.dev/badge/github.com/jacobalberty/go-unifi.svg)](https://pkg.go.dev/github.com/jacobalberty/go-unifi)
+
+A Go implementation of the UniFi device protocol: what UniFi access points
+and switches speak to their controller. It has no controller logic of its
+own, so you can build a controller, a proxy or a debugging tool on it.
+
+Package [`inform`](inform) covers the inform protocol, which devices POST to
+`/inform`:
+
+- packet framing, AES-128-CBC and AES-128-GCM encryption, zlib and snappy
+  compression (`Parse`, `Packet.Decode`, `Seal`);
+- the device's report (`ParseInform`) and the controller's replies (`Noop`,
+  `SetParam`, `Upgrade`, `Reboot`, `Cmd`, encoded by `MarshalResponse`);
+- the `key=value` documents carried by `mgmt_cfg` and `system_cfg` (`Config`);
+- an `http.Handler` that does all of the above around your callbacks.
+
+```go
+http.Handle("/inform", &inform.Handler{
+	Key: func(ctx context.Context, mac net.HardwareAddr) ([]byte, error) {
+		return keyFor(mac) // the device's authkey, or inform.DefaultKey() before adoption
+	},
+	Serve: func(ctx context.Context, p *inform.Packet, in *inform.Inform) (inform.Response, error) {
+		if !adopted(p.MAC) {
+			return nil, inform.ErrUnknownDevice // 404: the device keeps waiting
+		}
+		return inform.Noop{Interval: 10}, nil
+	},
+})
+```
+
+The only dependency is [github.com/golang/snappy](https://github.com/golang/snappy).
+The library does no logging and carries no telemetry.
+
+## inform tool
+
+```sh
+go install github.com/jacobalberty/go-unifi/cmd/inform@latest
+inform -header -key <authkey hex> packet.bin
+```
+
+decodes captured packets and prints their JSON. Without `-key` it uses the
+default key of unadopted devices.
+
+## Releases
+
+Releases are automatic. Every push to `main` that adds `feat`, `fix`, `perf`
+or breaking commits since the last tag is tagged with the next semantic
+version and published with generated release notes, so commit messages must
+follow [Conventional Commits](https://www.conventionalcommits.org/) (CI
+checks pull requests). While the version is 0.x, breaking changes bump the
+minor version. Version 1.0.0 and later major versions are cut by hand.
+
+## Credits
+
+The captured packet in `inform/testdata` comes from
+[dmke/inform-inspect](https://github.com/dmke/inform-inspect) (MIT).

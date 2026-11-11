@@ -58,6 +58,46 @@ func TestDecodeCapture(t *testing.T) {
 	}
 }
 
+// A GCM packet captured from a real access point decodes, and the header is
+// authenticated: changing it makes decryption fail.
+func TestDecodeGCMCapture(t *testing.T) {
+	b, err := os.ReadFile("testdata/gcm_zlib.dat")
+	if err != nil {
+		t.Fatal(err)
+	}
+	key, _ := hex.DecodeString("05223125e6b44aca0a0599551168d766")
+	p, err := Parse(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.MAC.String() != "fc:ec:da:fc:c5:35" || p.Flags != FlagEncrypted|FlagZlib|FlagGCM || p.DataVersion != 1 {
+		t.Fatalf("header = %+v", p)
+	}
+	msg, err := p.Decode(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	in, err := ParseInform(msg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if in.MAC != "fc:ec:da:fc:c5:35" || in.Model != "U7PG2" || in.Version != "4.0.66.10832" || in.ConfigVersion != "4bd42ec8af031f27" {
+		t.Fatalf("inform = %+v", in)
+	}
+	if _, err := p.Decode(DefaultKey()); !errors.Is(err, ErrDecrypt) {
+		t.Fatalf("wrong key: %v", err)
+	}
+	again, err := p.MarshalBinary()
+	if err != nil || !bytes.Equal(again, b) {
+		t.Fatalf("MarshalBinary differs from capture (%v)", err)
+	}
+	tampered := *p
+	tampered.DataVersion++
+	if _, err := tampered.Decode(key); !errors.Is(err, ErrDecrypt) {
+		t.Fatalf("tampered header accepted: %v", err)
+	}
+}
+
 func TestRoundTrip(t *testing.T) {
 	msg := []byte(`{"_type":"noop","interval":10}`)
 	for _, f := range []Flags{

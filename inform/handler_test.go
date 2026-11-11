@@ -186,3 +186,29 @@ func TestOpenWrongKeyIsAlwaysErrDecrypt(t *testing.T) {
 		}
 	}
 }
+
+// Devices set up for another controller are reported, with their MAC,
+// even though nothing can decrypt them.
+func TestHandlerUndecryptable(t *testing.T) {
+	var reported []string
+	h := &Handler{
+		Keys: func(context.Context, net.HardwareAddr) ([]Key, error) {
+			return []Key{{"default", DefaultKey()}}, nil
+		},
+		Serve: func(context.Context, *Packet, *Inform, Key) (Response, error) {
+			return nil, ErrUnknownDevice
+		},
+		Undecryptable: func(_ context.Context, p *Packet) { reported = append(reported, p.MAC.String()) },
+	}
+	foreign := &device{t: t, mac: net.HardwareAddr{0xde, 0xad, 0xbe, 0xef, 0x00, 0x04}, key: captureKey, flags: FlagEncrypted | FlagGCM | FlagSnappy}
+	if rec, _ := foreign.inform(h); rec.Code != http.StatusNotFound {
+		t.Fatalf("foreign device: %d", rec.Code)
+	}
+	pending := &device{t: t, mac: net.HardwareAddr{0xde, 0xad, 0xbe, 0xef, 0x00, 0x05}, key: DefaultKey(), flags: FlagEncrypted | FlagZlib}
+	if rec, _ := pending.inform(h); rec.Code != http.StatusNotFound {
+		t.Fatalf("pending device: %d", rec.Code)
+	}
+	if len(reported) != 1 || reported[0] != "de:ad:be:ef:00:04" {
+		t.Fatalf("reported %v, want only the foreign device", reported)
+	}
+}

@@ -42,6 +42,11 @@ type Handler struct {
 	// it (the zero Key for an unencrypted packet). Returning
 	// ErrUnknownDevice answers 404, e.g. for a device waiting to be adopted.
 	Serve func(ctx context.Context, p *Packet, in *Inform, used Key) (Response, error)
+	// Undecryptable, if set, is called for packets none of the candidate
+	// keys can open, typically a device still set up for another controller.
+	// The MAC and the rest of the header are readable without the key, so a controller can list such devices for credential import.
+	// The device gets a 404 either way.
+	Undecryptable func(ctx context.Context, p *Packet)
 	// OnError, if set, is told why a request failed (for logging). mac is
 	// nil when the packet could not be parsed.
 	OnError func(ctx context.Context, mac net.HardwareAddr, status int, err error)
@@ -75,6 +80,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if errors.Is(err, ErrDecrypt) {
 		// No key fits: the device belongs to another controller, or we hold
 		// the wrong key. 404 keeps it waiting.
+		if h.Undecryptable != nil {
+			h.Undecryptable(ctx, p)
+		}
 		h.fail(ctx, w, p.MAC, http.StatusNotFound, err)
 		return
 	}

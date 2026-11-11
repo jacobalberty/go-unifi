@@ -32,6 +32,26 @@ http.Handle("/inform", &inform.Handler{
 })
 ```
 
+### Adopting devices and changing keys
+
+A device starts out encrypting with `inform.DefaultKey()`. Adoption hands it
+its own key in a `SetParam` whose management config comes from
+`inform.MgmtConfig{AuthKey: inform.NewKey(), CfgVersion: …}`. That reply is
+sealed with the key the device used, since it does not have the new one yet.
+
+Replies can be lost, so until the device is seen using the new key, `Keys`
+should return both: `{"pending", new}` and the old key. `Serve` is told which
+one worked (`used.Name`). Once it is `"pending"`, the switch is done: store
+the new key as current and drop the old one. The same steps replace a key.
+
+**Taking over devices from another controller.** A device adopted elsewhere
+keeps its key when it is pointed at a new controller (by DNS or
+`set-inform`). With its `authkey`, extracted from the other controller and
+read with `inform.ParseKey`, offer that key as a candidate, then re-key the
+device as above. Devices that no candidate key can open are passed to
+`Handler.Undecryptable`, with their MAC, so you can list what still needs
+credentials.
+
 The only dependency is [github.com/golang/snappy](https://github.com/golang/snappy).
 The library does no logging and carries no telemetry.
 

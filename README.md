@@ -18,10 +18,12 @@ Package [`inform`](inform) covers the inform protocol, which devices POST to
 
 ```go
 http.Handle("/inform", &inform.Handler{
-	Key: func(ctx context.Context, mac net.HardwareAddr) ([]byte, error) {
-		return keyFor(mac) // the device's authkey, or inform.DefaultKey() before adoption
+	// Candidate keys, tried in order. While handing a device a new key,
+	// offer the new and the old one until it is seen using the new one.
+	Keys: func(ctx context.Context, mac net.HardwareAddr) ([]inform.Key, error) {
+		return keysFor(mac) // e.g. pending, current, then {"default", inform.DefaultKey()}
 	},
-	Serve: func(ctx context.Context, p *inform.Packet, in *inform.Inform) (inform.Response, error) {
+	Serve: func(ctx context.Context, p *inform.Packet, in *inform.Inform, used inform.Key) (inform.Response, error) {
 		if !adopted(p.MAC) {
 			return nil, inform.ErrUnknownDevice // 404: the device keeps waiting
 		}

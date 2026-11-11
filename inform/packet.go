@@ -170,6 +170,9 @@ func seal(random io.Reader, mac net.HardwareAddr, flags Flags, key, msg []byte) 
 	if flags&FlagGCM != 0 && flags&FlagEncrypted == 0 {
 		return nil, fmt.Errorf("%w: FlagGCM needs FlagEncrypted", ErrMalformed)
 	}
+	if len(msg) > maxMessage {
+		return nil, fmt.Errorf("%w: message larger than %d bytes", ErrMalformed, maxMessage)
+	}
 	data, err := compress(flags, msg)
 	if err != nil {
 		return nil, err
@@ -216,6 +219,11 @@ func sealCBC(key, iv, data []byte) ([]byte, error) {
 	block, err := newCipher(key)
 	if err != nil {
 		return nil, err
+	}
+	// Bound the size so padding cannot overflow (the header caps payloads
+	// at 1<<31 bytes anyway).
+	if len(data) > 1<<31-aes.BlockSize {
+		return nil, fmt.Errorf("%w: payload too large", ErrMalformed)
 	}
 	padded := pkcs7Pad(data, aes.BlockSize)
 	cipher.NewCBCEncrypter(block, iv).CryptBlocks(padded, padded)

@@ -10,8 +10,37 @@ const (
 	KeyAuthKey    = "authkey"     // the device's AES key, 32 hex digits
 	KeyCfgVersion = "cfgversion"  // configuration version the device reports back
 	KeyUseAESGCM  = "use_aes_gcm" // "true" to switch the device to AES-GCM
-	KeyInformURL  = "mgmt.servers.1.url"
 )
+
+// MgmtConfig is the management part of a SetParam reply: the device's key
+// and the configuration version it should report. Sending a new AuthKey
+// adopts a device or replaces its key; seal that reply with the key the
+// device used for its inform, since it does not have the new one yet.
+type MgmtConfig struct {
+	AuthKey    []byte // required
+	CfgVersion string // required; echoed back as cfgversion once applied
+	UseAESGCM  bool   // switch the device to AES-GCM
+}
+
+// Config renders m as a key=value document for SetParam.ManagementConfig.
+// Add further keys to the result with Config.Set.
+func (m MgmtConfig) Config() (*Config, error) {
+	if len(m.AuthKey) != KeySize {
+		return nil, ErrKeySize
+	}
+	if m.CfgVersion == "" {
+		return nil, fmt.Errorf("inform: MgmtConfig needs a CfgVersion")
+	}
+	c := NewConfig()
+	if err := c.Set(KeyCfgVersion, m.CfgVersion); err != nil {
+		return nil, err
+	}
+	_ = c.Set(KeyAuthKey, FormatKey(m.AuthKey))
+	if m.UseAESGCM {
+		_ = c.Set(KeyUseAESGCM, "true")
+	}
+	return c, nil
+}
 
 // Config is a key=value document as used by mgmt_cfg and system_cfg: one
 // "key=value" per line. Keys keep their insertion order.

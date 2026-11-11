@@ -35,3 +35,22 @@ func TestConfig(t *testing.T) {
 		t.Error("line without = accepted")
 	}
 }
+
+func TestMgmtConfig(t *testing.T) {
+	c, err := MgmtConfig{AuthKey: captureKey, CfgVersion: "7", UseAESGCM: true}.Config()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := c.String(), "cfgversion=7\nauthkey=e2c930683af3945e4d0d58d37a78c2a6\nuse_aes_gcm=true\n"; got != want {
+		t.Fatalf("got %q, want %q", got, want)
+	}
+	if _, err := (MgmtConfig{AuthKey: []byte("short"), CfgVersion: "1"}).Config(); err == nil {
+		t.Error("short key accepted")
+	}
+	if _, err := (MgmtConfig{AuthKey: captureKey}).Config(); err == nil {
+		t.Error("missing cfgversion accepted")
+	}
+	if _, err := (MgmtConfig{AuthKey: captureKey, CfgVersion: "a\nb"}).Config(); err == nil {
+		t.Error("multi-line cfgversion accepted")
+	}
+}

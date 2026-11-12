@@ -17,6 +17,7 @@ func TestMarshalResponse(t *testing.T) {
 		{Upgrade{URL: "http://x/fw.bin", Version: "6.0"}, map[string]any{"_type": "upgrade", "url": "http://x/fw.bin", "version": "6.0"}},
 		{Reboot{}, map[string]any{"_type": "reboot"}},
 		{Cmd{Command: "locate"}, map[string]any{"_type": "cmd", "cmd": "locate"}},
+		{SetDefault{}, map[string]any{"_type": "setdefault"}},
 	} {
 		b, err := MarshalResponse(tc.r, now)
 		if err != nil {
@@ -38,6 +39,19 @@ func TestMarshalResponse(t *testing.T) {
 				t.Errorf("%T: %s = %v, want %v", tc.r, k, got[k], v)
 			}
 		}
+	}
+}
+
+// SetDefault matches, byte for byte, what a UniFi controller sent to a device
+// it had just been told to forget (captured from a real controller).
+func TestSetDefaultMatchesACapturedReply(t *testing.T) {
+	b, err := MarshalResponse(SetDefault{}, time.UnixMilli(1794511845763))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const captured = `{"_type":"setdefault","server_time_in_utc":"1794511845763"}`
+	if string(b) != captured {
+		t.Fatalf("got  %s\nwant %s", b, captured)
 	}
 }
 

@@ -39,7 +39,8 @@ func ParseInform(msg []byte) (*Inform, error) {
 	return &in, nil
 }
 
-// Response is a controller reply: Noop, SetParam, Upgrade, Reboot or Cmd.
+// Response is a controller reply: Noop, SetParam, Upgrade, Reboot, Cmd or
+// SetDefault.
 type Response interface {
 	responseType() string
 }
@@ -107,3 +108,14 @@ type Cmd struct {
 }
 
 func (Cmd) responseType() string { return "cmd" }
+
+// SetDefault tells the device to factory reset itself: it forgets its
+// configuration and its key and goes back to the state of a new device, which
+// informs with DefaultKey and waits to be adopted. It is the reply a UniFi
+// controller sends when an adopted device is "forgotten", and it carries no
+// fields beyond the type and the server time:
+//
+//	{"_type":"setdefault","server_time_in_utc":"1794511845763"}
+type SetDefault struct{}
+
+func (SetDefault) responseType() string { return "setdefault" }

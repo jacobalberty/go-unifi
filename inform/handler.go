@@ -27,7 +27,8 @@ type Key struct {
 
 // Handler serves POST /inform. It parses each packet, decrypts it with the
 // first of the device's candidate keys that works, passes the message to
-// Serve, and seals the reply with that key and the flags the device used.
+// Serve, and seals the reply with that key and the flags the device used,
+// minus compression: replies go out uncompressed.
 //
 // Trying several keys lets a controller change a device's key safely: while
 // a new key is on its way (in a SetParam reply the device may not have
@@ -104,7 +105,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.fail(ctx, w, p.MAC, http.StatusInternalServerError, err)
 		return
 	}
-	out, err := Seal(p.MAC, p.Flags, used.Bytes, reply)
+	// Replies are not compressed, whatever the device used: a UAP-AC-Lite
+	// (firmware 6.8.2) that sent zlib parsed a zlib reply as JSON and dropped it.
+	out, err := Seal(p.MAC, p.Flags&^(FlagZlib|FlagSnappy), used.Bytes, reply)
 	if err == nil {
 		reply, err = out.MarshalBinary()
 	}

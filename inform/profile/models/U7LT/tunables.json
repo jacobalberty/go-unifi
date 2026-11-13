@@ -1,0 +1,143 @@
+[
+  {
+    "key": "bandsteering.status",
+    "default": "disabled",
+    "check": {
+      "enum": [
+        "enabled",
+        "disabled"
+      ]
+    },
+    "source": "disabled/auto: the state of an untuned AP; agrees with the capture but not independent evidence (unverified)"
+  },
+  {
+    "key": "radio.outdoor",
+    "default": "disabled",
+    "check": {
+      "enum": [
+        "enabled",
+        "disabled"
+      ]
+    },
+    "source": "disabled/auto: the state of an untuned AP; agrees with the capture but not independent evidence (unverified)"
+  },
+  {
+    "key": "stamgr.status",
+    "default": "disabled",
+    "check": {
+      "enum": [
+        "enabled",
+        "disabled"
+      ]
+    },
+    "source": "disabled/auto: the state of an untuned AP; agrees with the capture but not independent evidence (unverified)"
+  },
+  {
+    "key": "radio.{N}.bgscan.status",
+    "default": "disabled",
+    "check": {
+      "enum": [
+        "enabled",
+        "disabled"
+      ]
+    },
+    "source": "disabled/auto: the state of an untuned AP; agrees with the capture but not independent evidence (unverified)"
+  },
+  {
+    "key": "radio.{N}.channel",
+    "default": "auto",
+    "check": {
+      "auto_or_int": [
+        1,
+        196
+      ]
+    },
+    "source": "controller sends auto for an unset channel; the pre-adoption factory config has 0, which is the device's own value"
+  },
+  {
+    "key": "radio.{N}.hard_noisefloor.status",
+    "default": "disabled",
+    "check": {
+      "enum": [
+        "enabled",
+        "disabled"
+      ]
+    },
+    "source": "disabled/auto: the state of an untuned AP; agrees with the capture but not independent evidence (unverified)"
+  },
+  {
+    "key": "radio.{N}.ieee_mode",
+    "bands": [
+      "2g"
+    ],
+    "default": "11nght20",
+    "check": {
+      "enum": [
+        "11nght20",
+        "11nght40"
+      ]
+    },
+    "source": "2.4 GHz width HT20, the usual default"
+  },
+  {
+    "key": "radio.{N}.ieee_mode",
+    "bands": [
+      "5g"
+    ],
+    "default": "11naht40",
+    "check": {
+      "enum": [
+        "11naht20",
+        "11naht40",
+        "11acvht20",
+        "11acvht40",
+        "11acvht80"
+      ]
+    },
+    "source": "UNVERIFIED: the capture's value, not established as UniFi's default; chosen because this firmware is known to accept it"
+  },
+  {
+    "key": "radio.{N}.rfscan",
+    "default": "disabled",
+    "check": {
+      "enum": [
+        "enabled",
+        "disabled"
+      ]
+    },
+    "source": "disabled/auto: the state of an untuned AP; agrees with the capture but not independent evidence (unverified)"
+  },
+  {
+    "key": "radio.{N}.txpower",
+    "default": "auto",
+    "check": {
+      "auto_or_int": [
+        1,
+        40
+      ]
+    },
+    "source": "disabled/auto: the state of an untuned AP; agrees with the capture but not independent evidence (unverified)"
+  },
+  {
+    "key": "radio.{N}.txpower_mode",
+    "default": "auto",
+    "check": {
+      "enum": [
+        "auto",
+        "custom"
+      ]
+    },
+    "source": "disabled/auto: the state of an untuned AP; agrees with the capture but not independent evidence (unverified)"
+  },
+  {
+    "key": "radio.{N}.blklst",
+    "bands": [
+      "2g"
+    ],
+    "optional": true,
+    "check": {
+      "channel_list": true
+    },
+    "source": "the capture's value is one site's channel plan; unset by default"
+  }
+]

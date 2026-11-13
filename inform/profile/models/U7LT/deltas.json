@@ -1,0 +1,10 @@
+{
+  "comment": "keys one added both-band network adds to a site that already has one on the same VLAN, by first key segment (observed on the capture's controller)",
+  "added_by_section": {
+    "wireless": 66,
+    "aaa": 56,
+    "netconf": 12,
+    "radio": 6,
+    "bridge": 2
+  }
+}

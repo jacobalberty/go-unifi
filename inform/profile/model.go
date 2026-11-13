@@ -38,7 +38,27 @@ type Model struct {
 	Kind    Kind
 	Ports   int // ports beyond the uplink
 	Radios  []Radio
+	// Family names the hardware family whose rendering rules the model
+	// uses. Models of a family share them.
+	Family string
+	// Status says how much is known: StatusCaptureDerived until a document
+	// rendered from the profile has been compared with a device.
+	Status Status
+	// Firmware is the firmware of the device the profile was captured from.
+	Firmware string
 }
+
+// Status is how well a profile is verified.
+type Status string
+
+const (
+	// StatusCaptureDerived: built from a capture of a controller; its key
+	// sets are tested, no rendered document was compared with a device.
+	StatusCaptureDerived Status = "capture-derived"
+	// StatusHardwareVerified: a document rendered from the profile was
+	// compared with /tmp/system.cfg of a device that accepted it.
+	StatusHardwareVerified Status = "hardware-verified"
+)
 
 // Models returns the models that have a Profile. The result is a copy.
 func Models() []Model {

@@ -1,0 +1,26 @@
+{
+  "code": "U7LT",
+  "display": "UAP-AC-Lite",
+  "kind": "access_point",
+  "ports": 0,
+  "family": "madwifi-dual",
+  "status": "capture-derived",
+  "provenance": {
+    "firmware": "6.8.2.15592",
+    "note": "one capture of one controller provisioning one device; no hardware verification"
+  },
+  "radios": [
+    {
+      "index": 1,
+      "phy": "wifi0",
+      "inform_name": "ng",
+      "band": "2g"
+    },
+    {
+      "index": 2,
+      "phy": "wifi1",
+      "inform_name": "na",
+      "band": "5g"
+    }
+  ]
+}

@@ -18,6 +18,9 @@
 //   - network: exists because a wifi network or VLAN is configured; rendered
 //     from Inputs.Networks.
 //
+// Each model is a directory under models/ (see docs/adding-a-model.md); adding
+// one needs no Go change unless its documents differ in shape from a known family.
+//
 // The model table is also the source of inform.Inform.Classify, so the
 // supported-device matrix and device classification cannot drift apart.
 //

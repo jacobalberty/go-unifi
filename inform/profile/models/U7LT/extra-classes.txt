@@ -1,0 +1,12 @@
+# Network-class key patterns of a WPA enterprise network. The U7LT capture had
+# no such network, so classes.txt (analyzer output, kept unmodified) lacks them.
+# The names come from an earlier capture of another dual-radio AP (madwifi) and
+# are UNVERIFIED on the U7LT. Format as classes.txt.
+network	-	aaa.N.auth_cache
+network	-	aaa.N.dynamic_vlan
+network	-	aaa.N.radius.auth.N.ip
+network	-	aaa.N.radius.auth.N.port
+network	secret	aaa.N.radius.auth.N.secret
+network	-	aaa.N.radius.acct.N.ip
+network	-	aaa.N.radius.acct.N.port
+network	secret	aaa.N.radius.acct.N.secret

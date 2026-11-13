@@ -1,13 +1,9 @@
 package profile
 
 import (
-	"bufio"
-	"bytes"
-	_ "embed"
 	"fmt"
 	"slices"
 	"sort"
-	"strconv"
 	"strings"
 )
 
@@ -153,45 +149,3 @@ func (r classRule) matches(segs []string) bool {
 	}
 	return true
 }
-
-// parseClasses reads a key-classes file: "class<TAB>secret|-<TAB>pattern".
-func parseClasses(data []byte) []classRule {
-	var rules []classRule
-	sc := bufio.NewScanner(bytes.NewReader(data))
-	for sc.Scan() {
-		line := sc.Text()
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		f := strings.Split(line, "\t")
-		if len(f) != 3 {
-			panic("profile: bad key-classes line " + strconv.Quote(line))
-		}
-		rules = append(rules, classRule{class: Class(f[0]), secret: f[1] == "secret", segments: strings.Split(f[2], ".")})
-	}
-	return rules
-}
-
-// The classification of the UAP-AC-Lite's document: every key pattern of one
-// provisioned document, with its class. No values.
-//
-//go:embed u7lt_key_classes.txt
-var u7ltClasses []byte
-
-// radiusRules are the key patterns of a WPA enterprise network. The U7LT
-// capture had no such network, so they are not in its key-classes file: the
-// names come from an earlier capture of another dual-radio access point (the
-// madwifi driver family) and are UNVERIFIED on the U7LT.
-var radiusRules = []classRule{
-	{class: ClassNetwork, segments: strings.Split("aaa.N.auth_cache", ".")},
-	{class: ClassNetwork, segments: strings.Split("aaa.N.dynamic_vlan", ".")},
-	{class: ClassNetwork, segments: strings.Split("aaa.N.radius.auth.N.ip", ".")},
-	{class: ClassNetwork, segments: strings.Split("aaa.N.radius.auth.N.port", ".")},
-	{class: ClassNetwork, secret: true, segments: strings.Split("aaa.N.radius.auth.N.secret", ".")},
-	{class: ClassNetwork, segments: strings.Split("aaa.N.radius.acct.N.ip", ".")},
-	{class: ClassNetwork, segments: strings.Split("aaa.N.radius.acct.N.port", ".")},
-	{class: ClassNetwork, secret: true, segments: strings.Split("aaa.N.radius.acct.N.secret", ".")},
-}
-
-// table is the supported-device table: the models that have a profile.
-var table = []*Profile{u7lt()}

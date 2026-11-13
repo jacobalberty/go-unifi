@@ -1,0 +1,17 @@
+{
+  "2g": {
+    "pureg": "0",
+    "dtim": "1",
+    "wireless": {
+      "beacon_rate": "1000",
+      "mgmt_rate": "1000",
+      "minrate_cck_rates.status": "true",
+      "minrate_data": "1000"
+    }
+  },
+  "5g": {
+    "pureg": "1",
+    "dtim": "3",
+    "wireless": {}
+  }
+}

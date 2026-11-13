@@ -56,6 +56,15 @@ func u7lt(t *testing.T) *profile.Profile {
 	return p
 }
 
+func renderFor(t *testing.T, p *profile.Profile, in profile.Inputs) profile.Document {
+	t.Helper()
+	d, err := profile.Render(p, in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return d
+}
+
 func render(t *testing.T, in profile.Inputs) profile.Document {
 	t.Helper()
 	d, err := profile.Render(u7lt(t), in)
@@ -68,14 +77,20 @@ func render(t *testing.T, in profile.Inputs) profile.Document {
 // Every rendered key has a class in the capture's classification, for the
 // document with no networks and for documents with several kinds of network.
 func TestEveryKeyIsClassified(t *testing.T) {
-	p := u7lt(t)
+	for _, m := range profile.Models() {
+		p, _ := profile.Lookup(m.Code)
+		t.Run(m.Code, func(t *testing.T) { everyKeyIsClassified(t, p) })
+	}
+}
+
+func everyKeyIsClassified(t *testing.T, p *profile.Profile) {
 	for name, nets := range map[string][]profile.Network{
 		"no networks":  nil,
 		"psk":          {psk("a", "one", 0)},
 		"enterprise":   {eap("b")},
 		"vlan and psk": {psk("a", "one", 0), psk("c", "two", 20, profile.Band5G)},
 	} {
-		doc := render(t, profile.Inputs{Site: site(), Networks: nets})
+		doc := renderFor(t, p, profile.Inputs{Site: site(), Networks: nets})
 		for _, k := range doc.Keys() {
 			if len(p.Classes(k)) == 0 {
 				t.Errorf("%s: key %q has no class", name, k)
@@ -87,8 +102,14 @@ func TestEveryKeyIsClassified(t *testing.T) {
 // A render with no network is the base, the tunables and the site keys, and
 // nothing else, and it covers every model, tunable and site pattern.
 func TestZeroNetworkKeySet(t *testing.T) {
-	p := u7lt(t)
-	doc := render(t, profile.Inputs{Site: site()})
+	for _, m := range profile.Models() {
+		p, _ := profile.Lookup(m.Code)
+		t.Run(m.Code, func(t *testing.T) { zeroNetworkKeySet(t, p) })
+	}
+}
+
+func zeroNetworkKeySet(t *testing.T, p *profile.Profile) {
+	doc := renderFor(t, p, profile.Inputs{Site: site()})
 
 	want := map[string]bool{}
 	for k := range p.Base() {
@@ -134,7 +155,7 @@ func TestZeroNetworkKeySet(t *testing.T) {
 	}
 	// Every model, tunable and site rule of the classification is exercised,
 	// except the optional blocked-channel list.
-	for _, rule := range classRules(t, "u7lt_key_classes.txt") {
+	for _, rule := range classRules(t, p.Model.Code) {
 		if rule.class == profile.ClassNetwork || rule.pattern == "radio.N.blklst" {
 			continue
 		}
@@ -151,30 +172,35 @@ func section(k string) string { return k[:strings.Index(k, ".")] }
 // aaa 56, netconf 12, radio 6 and bridge 2, and no other key is added or
 // changes.
 func TestAddingANetworkAddsTheObservedKeys(t *testing.T) {
-	before := render(t, profile.Inputs{Site: site(), Networks: []profile.Network{psk("a", "one", 0)}})
-	after := render(t, profile.Inputs{Site: site(), Networks: []profile.Network{psk("a", "one", 0), psk("b", "two", 0)}})
+	for _, m := range profile.Models() {
+		p, _ := profile.Lookup(m.Code)
+		t.Run(m.Code, func(t *testing.T) {
+			before := renderFor(t, p, profile.Inputs{Site: site(), Networks: []profile.Network{psk("a", "one", 0)}})
+			after := renderFor(t, p, profile.Inputs{Site: site(), Networks: []profile.Network{psk("a", "one", 0), psk("b", "two", 0)}})
 
-	for k, v := range before {
-		if got, ok := after[k]; !ok || got != v {
-			t.Errorf("key %q changed from %q to %q (present: %v)", k, v, got, ok)
-		}
-	}
-	added := map[string]int{}
-	for k := range after {
-		if _, ok := before[k]; !ok {
-			added[section(k)]++
-		}
-	}
-	want := map[string]int{"wireless": 66, "aaa": 56, "netconf": 12, "radio": 6, "bridge": 2}
-	for s, n := range want {
-		if added[s] != n {
-			t.Errorf("%s: %d keys added, want %d", s, added[s], n)
-		}
-	}
-	for s, n := range added {
-		if _, ok := want[s]; !ok {
-			t.Errorf("%d keys added in unexpected section %q", n, s)
-		}
+			for k, v := range before {
+				if got, ok := after[k]; !ok || got != v {
+					t.Errorf("key %q changed from %q to %q (present: %v)", k, v, got, ok)
+				}
+			}
+			added := map[string]int{}
+			for k := range after {
+				if _, ok := before[k]; !ok {
+					added[section(k)]++
+				}
+			}
+			want := deltas(t, m.Code)
+			for s, n := range want {
+				if added[s] != n {
+					t.Errorf("%s: %d keys added, want %d", s, added[s], n)
+				}
+			}
+			for s, n := range added {
+				if _, ok := want[s]; !ok {
+					t.Errorf("%d keys added in unexpected section %q", n, s)
+				}
+			}
+		})
 	}
 }
 
@@ -290,8 +316,17 @@ func TestSecretsComeFromInputs(t *testing.T) {
 
 func TestModels(t *testing.T) {
 	ms := profile.Models()
-	if len(ms) != 1 || ms[0].Code != "U7LT" || ms[0].Kind != profile.KindAccessPoint || len(ms[0].Radios) != 2 {
-		t.Fatalf("Models() = %+v", ms)
+	if len(ms) == 0 {
+		t.Fatal("no models")
+	}
+	for _, m := range ms {
+		if _, ok := profile.Lookup(m.Code); !ok || m.Kind != profile.KindAccessPoint || len(m.Radios) == 0 || m.Status == "" {
+			t.Errorf("model %+v is incomplete", m)
+		}
+		// The table is the source of Classify.
+		if k, n := profile.Classify(m.Code, "", 0); k != m.Kind || n != m.Ports {
+			t.Errorf("Classify(%s) = %v, %d; the table says %v, %d", m.Code, k, n, m.Kind, m.Ports)
+		}
 	}
 	if _, ok := profile.Lookup("U7PG2"); ok {
 		t.Error("U7PG2 has a profile")

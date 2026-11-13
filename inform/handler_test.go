@@ -33,7 +33,7 @@ func (d *device) inform(h http.Handler) (*httptest.ResponseRecorder, []byte) {
 		return rec, nil
 	}
 	reply, err := Parse(rec.Body.Bytes())
-	if err != nil || reply.Flags != d.flags || !bytes.Equal(reply.MAC, d.mac) {
+	if err != nil || reply.Flags != d.flags&^(FlagZlib|FlagSnappy) || !bytes.Equal(reply.MAC, d.mac) {
 		d.t.Fatalf("reply %+v, %v", reply, err)
 	}
 	msg, err := reply.Decode(d.key)

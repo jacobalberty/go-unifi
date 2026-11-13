@@ -40,7 +40,7 @@ func classRules(t *testing.T, name string) []rule {
 		t.Fatal(err)
 	}
 	var out []rule
-	for _, l := range strings.Split(string(data), "\n") {
+	for l := range strings.SplitSeq(string(data), "\n") {
 		if l == "" || strings.HasPrefix(l, "#") {
 			continue
 		}

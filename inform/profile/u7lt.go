@@ -3,6 +3,7 @@ package profile
 import (
 	"fmt"
 	"regexp"
+	"slices"
 	"strconv"
 )
 
@@ -105,10 +106,8 @@ func u7ltTunables(radios []Radio) []Tunable {
 
 func oneOf(values ...string) func(string) error {
 	return func(v string) error {
-		for _, w := range values {
-			if v == w {
-				return nil
-			}
+		if slices.Contains(values, v) {
+			return nil
 		}
 		return fmt.Errorf("%q is not one of %v", v, values)
 	}

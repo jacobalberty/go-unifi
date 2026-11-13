@@ -11,7 +11,8 @@ Package [`inform`](inform) covers the inform protocol, which devices POST to
 
 - packet framing, AES-128-CBC and AES-128-GCM encryption, zlib and snappy
   compression (`Parse`, `Packet.Decode`, `Seal`);
-- the device's report (`ParseInform`) and the controller's replies (`Noop`,
+- the device's report (`ParseInform`), what kind of device sent it and how many
+  ports it has (`Inform.Classify`), and the controller's replies (`Noop`,
   `SetParam`, `Upgrade`, `Reboot`, `Cmd`, encoded by `MarshalResponse`);
 - the `key=value` documents carried by `mgmt_cfg` and `system_cfg` (`Config`);
 - an `http.Handler` that does all of the above around your callbacks.

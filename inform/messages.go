@@ -111,11 +111,19 @@ func (Cmd) responseType() string { return "cmd" }
 
 // SetDefault tells the device to factory reset itself: it forgets its
 // configuration and its key and goes back to the state of a new device, which
-// informs with DefaultKey and waits to be adopted. It is the reply a UniFi
-// controller sends when an adopted device is "forgotten", and it carries no
-// fields beyond the type and the server time:
+// informs with DefaultKey and waits to be adopted. A controller sends it when
+// an adopted device is "forgotten". It is sent as the "setdefault" command,
+// which carries no fields beyond the command and the server time:
 //
-//	{"_type":"setdefault","server_time_in_utc":"1794511845763"}
+//	{"_type":"cmd","cmd":"setdefault","server_time_in_utc":"1794511845763"}
+//
+// This is the form device-side implementations such as unifi-emu act on. A
+// capture of a real controller's reply had the type "setdefault" at the top
+// level instead (see the history of this type); a real device accepting both
+// is not confirmed.
 type SetDefault struct{}
 
-func (SetDefault) responseType() string { return "setdefault" }
+func (SetDefault) responseType() string { return "cmd" }
+
+// MarshalJSON adds the command to the "_type" that MarshalResponse supplies.
+func (SetDefault) MarshalJSON() ([]byte, error) { return []byte(`{"cmd":"setdefault"}`), nil }

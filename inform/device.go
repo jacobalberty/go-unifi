@@ -31,7 +31,7 @@ const (
 // ("AC IW") contains "IW": they have two LAN ports (checked on a
 // UAP-AC-IW; other in-wall models may differ). A switch reports the length
 // of the port_table of its inform when it sends one, else the number in its
-// model code (US8P150 is 8, USW-24-POE is 24, USMINI is 0). Gateways report
+// model code (US8P150 is 8, USM8P is 8, USW-24-POE is 24, USMINI is 0). Gateways report
 // 0: their ports are not described by the model code.
 func (in *Inform) Classify() (DeviceKind, int) {
 	model := strings.ToUpper(in.Model)
@@ -73,13 +73,18 @@ func portTableLen(raw json.RawMessage) int {
 }
 
 // switchPortsFromModel reads the port count out of a switch model code: the
-// first run of digits after the "US" or "USW" prefix. A model without one has
-// no known count.
+// first run of digits after the "US" prefix, wherever it sits (US8P150 is 8,
+// USW-24-POE is 24, USM8P is 8, USL24P is 24, USW-Pro-48 is 48). A model
+// without digits (USMINI, USW-Flex) has no known count.
 func switchPortsFromModel(model string) int {
-	rest := strings.TrimPrefix(strings.TrimPrefix(model, "US"), "W")
-	rest = strings.TrimLeft(rest, "-_")
+	rest := strings.TrimPrefix(model, "US")
+	start := strings.IndexFunc(rest, isDigit)
+	if start < 0 {
+		return 0
+	}
+	rest = rest[start:]
 	end := 0
-	for end < len(rest) && rest[end] >= '0' && rest[end] <= '9' {
+	for end < len(rest) && isDigit(rune(rest[end])) {
 		end++
 	}
 	// 16 bits is far more ports than any switch has.
@@ -89,3 +94,5 @@ func switchPortsFromModel(model string) int {
 	}
 	return int(n)
 }
+
+func isDigit(r rune) bool { return r >= '0' && r <= '9' }

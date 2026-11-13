@@ -33,6 +33,26 @@ http.Handle("/inform", &inform.Handler{
 })
 ```
 
+### Provisioning an access point: package `inform/profile`
+
+A device REPLACES its whole configuration with the `system_cfg` of a `SetParam`
+(a capture of a real controller provisioning a UAP-AC-Lite showed the device's
+`/tmp/system.cfg` identical to the document, key for key), so a partial document
+can leave an access point unusable. Package [`inform/profile`](inform/profile)
+holds the supported-device table (also the source of `Inform.Classify`) and a
+renderer that builds the *complete* document:
+
+```go
+p, ok := profile.Lookup(in.Model) // only models with a profile can be rendered
+doc, err := profile.Render(p, profile.Inputs{Tunables: …, Site: …, Networks: …})
+sp.SystemConfig = doc.String()
+```
+
+`Render` is deterministic and returns an error for any input it cannot render,
+never a partial document. Only the UAP-AC-Lite (`U7LT`) has a profile. Every
+fact comes from one capture of one site and one firmware (6.8.2.15592); the
+package documentation and `inform/profile/u7lt.go` say what is not verified.
+
 ### Adopting devices and changing keys
 
 A device starts out encrypting with `inform.DefaultKey()`. Adoption hands it

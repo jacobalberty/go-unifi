@@ -2,6 +2,11 @@
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/jacobalberty/go-unifi.svg)](https://pkg.go.dev/github.com/jacobalberty/go-unifi)
 
+> **Pre-release.** go-unifi is at 0.x and its API is not stable: do not rely on
+> it staying the same between releases. It is currently developed alongside
+> [beenfar](https://github.com/jacobalberty/beenfar), which drives its shape, and
+> will be refactored for a 1.0.0 release with a more concrete API contract.
+
 A Go implementation of the UniFi device protocol: what UniFi access points
 and switches speak to their controller. It has no controller logic of its
 own, so you can build a controller, a proxy or a debugging tool on it.
@@ -32,6 +37,28 @@ http.Handle("/inform", &inform.Handler{
 	},
 })
 ```
+
+### Provisioning an access point: package `inform/profile`
+
+A device REPLACES its whole configuration with the `system_cfg` of a `SetParam`
+(a capture of a real controller provisioning a UAP-AC-Lite showed the device's
+`/tmp/system.cfg` identical to the document, key for key), so a partial document
+can leave an access point unusable. Package [`inform/profile`](inform/profile)
+holds the supported-device table (also the source of `Inform.Classify`) and a
+renderer that builds the *complete* document:
+
+```go
+p, ok := profile.Lookup(in.Model) // only models with a profile can be rendered
+doc, err := profile.Render(p, profile.Inputs{Tunables: …, Site: …, Networks: …})
+sp.SystemConfig = doc.String()
+```
+
+`Render` is deterministic and returns an error for any input it cannot render,
+never a partial document. Only the UAP-AC-Lite (`U7LT`) has a profile. Every
+fact comes from one capture of one site and one firmware (6.8.2.15592); the
+package documentation and each model's `model.json` say what is not verified.
+A model is a directory under `inform/profile/models/`; see
+[docs/adding-a-model.md](docs/adding-a-model.md) to add one.
 
 ### Adopting devices and changing keys
 

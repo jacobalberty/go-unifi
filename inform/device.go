@@ -2,19 +2,20 @@ package inform
 
 import (
 	"encoding/json"
-	"strconv"
-	"strings"
+
+	"github.com/jacobalberty/go-unifi/inform/profile"
 )
 
-// DeviceKind is the product line of a UniFi device.
-type DeviceKind string
+// DeviceKind is the product line of a UniFi device. It is the Kind of the
+// profile package, whose model table Classify answers from.
+type DeviceKind = profile.Kind
 
 const (
 	// KindUnknown is a device whose model this package does not recognise.
-	KindUnknown     DeviceKind = ""
-	KindAccessPoint DeviceKind = "access_point"
-	KindSwitch      DeviceKind = "switch"
-	KindGateway     DeviceKind = "gateway"
+	KindUnknown     = profile.KindUnknown
+	KindAccessPoint = profile.KindAccessPoint
+	KindSwitch      = profile.KindSwitch
+	KindGateway     = profile.KindGateway
 )
 
 // Classify says what kind of device sent the inform and how many ports
@@ -34,31 +35,7 @@ const (
 // model code (US8P150 is 8, USM8P is 8, USW-24-POE is 24, USMINI is 0). Gateways report
 // 0: their ports are not described by the model code.
 func (in *Inform) Classify() (DeviceKind, int) {
-	model := strings.ToUpper(in.Model)
-	switch {
-	case hasAnyPrefix(model, "UGW", "UDM", "UDR", "UXG", "UCG", "UDW"):
-		return KindGateway, 0
-	case hasAnyPrefix(model, "U7", "U6", "U5", "U2", "UAP", "UAL", "UHD", "UFL", "UBB", "BZ2", "UWB", "E7", "UK"):
-		if strings.Contains(model, "IW") || strings.Contains(strings.ToUpper(in.ModelDisplay), "IW") {
-			return KindAccessPoint, 2
-		}
-		return KindAccessPoint, 0
-	case strings.HasPrefix(model, "US"):
-		if n := portTableLen(in.Raw); n > 0 {
-			return KindSwitch, n
-		}
-		return KindSwitch, switchPortsFromModel(model)
-	}
-	return KindUnknown, 0
-}
-
-func hasAnyPrefix(s string, prefixes ...string) bool {
-	for _, p := range prefixes {
-		if strings.HasPrefix(s, p) {
-			return true
-		}
-	}
-	return false
+	return profile.Classify(in.Model, in.ModelDisplay, portTableLen(in.Raw))
 }
 
 // portTableLen is the number of entries of the inform's port_table, or 0.
@@ -71,28 +48,3 @@ func portTableLen(raw json.RawMessage) int {
 	}
 	return len(v.PortTable)
 }
-
-// switchPortsFromModel reads the port count out of a switch model code: the
-// first run of digits after the "US" prefix, wherever it sits (US8P150 is 8,
-// USW-24-POE is 24, USM8P is 8, USL24P is 24, USW-Pro-48 is 48). A model
-// without digits (USMINI, USW-Flex) has no known count.
-func switchPortsFromModel(model string) int {
-	rest := strings.TrimPrefix(model, "US")
-	start := strings.IndexFunc(rest, isDigit)
-	if start < 0 {
-		return 0
-	}
-	rest = rest[start:]
-	end := 0
-	for end < len(rest) && isDigit(rune(rest[end])) {
-		end++
-	}
-	// 16 bits is far more ports than any switch has.
-	n, err := strconv.ParseInt(rest[:end], 10, 16)
-	if err != nil {
-		return 0
-	}
-	return int(n)
-}
-
-func isDigit(r rune) bool { return r >= '0' && r <= '9' }

@@ -212,3 +212,27 @@ func TestHandlerUndecryptable(t *testing.T) {
 		t.Fatalf("reported %v, want only the foreign device", reported)
 	}
 }
+
+// A real controller answers a UAP's encrypted+zlib+GCM inform (flags 0x0b) with
+// flags 0x09: encrypted and GCM, but not compressed. A device that sent zlib
+// does not decompress replies, so a compressed one is dropped as bad JSON.
+func TestHandlerReplyIsNotCompressed(t *testing.T) {
+	mac := net.HardwareAddr{0x18, 0xe8, 0x29, 0x90, 0xc0, 0x68}
+	key := NewKey()
+	h := &Handler{
+		Keys:  func(context.Context, net.HardwareAddr) ([]Key, error) { return []Key{{Name: "k", Bytes: key}}, nil },
+		Serve: func(context.Context, *Packet, *Inform, Key) (Response, error) { return Noop{Interval: 10}, nil },
+	}
+	for _, c := range []struct{ in, want Flags }{
+		{0x0b, 0x09},
+		{FlagEncrypted | FlagZlib, FlagEncrypted},
+		{FlagEncrypted | FlagSnappy, FlagEncrypted},
+	} {
+		d := &device{t: t, mac: mac, key: key, flags: c.in}
+		rec, _ := d.inform(h)
+		reply, err := Parse(rec.Body.Bytes())
+		if err != nil || reply.Flags != c.want {
+			t.Fatalf("request flags %#x: reply flags %#x, %v; want %#x", uint16(c.in), uint16(reply.Flags), err, uint16(c.want))
+		}
+	}
+}
